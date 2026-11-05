@@ -29,6 +29,7 @@
 
 #if !TARGET_OS_TV
 #import "SettingsViewController.h"
+#import "HowlLibraryViewController.h"
 #else
 #import <sys/utsname.h>
 #endif
@@ -36,6 +37,11 @@
 #import <VideoToolbox/VideoToolbox.h>
 
 #include <Limelight.h>
+
+#if !TARGET_OS_TV
+@interface MainFrameViewController () <HowlLibraryViewControllerDelegate>
+@end
+#endif
 
 @implementation MainFrameViewController {
     NSOperationQueue* _opQueue;
@@ -845,6 +851,71 @@ static NSMutableSet* hostList;
     [[self activeViewController] presentViewController:alertController animated:YES completion:nil];
 }
 
+#if !TARGET_OS_TV
+- (void) showHowlLibrary {
+    HowlLibraryViewController* library = [[HowlLibraryViewController alloc] init];
+    library.delegate = self;
+
+    UINavigationController* navigation = [[UINavigationController alloc] initWithRootViewController:library];
+    navigation.modalPresentationStyle = UIModalPresentationFullScreen;
+    [self presentViewController:navigation animated:YES completion:nil];
+}
+
+- (void)howlLibraryDidRequestClose:(HowlLibraryViewController *)controller {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)howlLibrary:(HowlLibraryViewController *)controller didSelectAppTitle:(NSString *)title wolfId:(NSString *)wolfId {
+    [self dismissViewControllerAnimated:YES completion:^{
+        [self launchHowlTitle:title wolfId:wolfId];
+    }];
+}
+
+- (void) launchHowlTitle:(NSString*)title wolfId:(NSString*)wolfId {
+    TemporaryApp* match = nil;
+    TemporaryHost* host = nil;
+
+    @synchronized(hostList) {
+        for (TemporaryHost* candidate in hostList) {
+            for (TemporaryApp* app in candidate.appList) {
+                BOOL idMatch = wolfId.length > 0 && [app.id isEqualToString:wolfId];
+                BOOL titleMatch = [app.name caseInsensitiveCompare:title] == NSOrderedSame;
+                if (idMatch || titleMatch) {
+                    match = app;
+                    host = candidate;
+                    break;
+                }
+            }
+            if (match != nil) {
+                break;
+            }
+        }
+    }
+
+    NSString* problem = nil;
+    if (match == nil) {
+        problem = @"主機的遊戲清單裡還沒有這個遊戲。請先開啟 Howl 主機（txg1.chiuhuang.dev），讓它從 Wolf 載入遊戲清單。";
+    } else if (host.pairState != PairStatePaired) {
+        problem = @"請先在主機清單配對 Howl 主機（txg1.chiuhuang.dev），配對完成後就能直接啟動遊戲。";
+    }
+
+    if (problem != nil) {
+        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"無法啟動遊戲"
+                                                                       message:problem
+                                                                preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:@"確定" style:UIAlertActionStyleDefault handler:nil]];
+        alert.popoverPresentationController.sourceView = self.view;
+        alert.popoverPresentationController.sourceRect = CGRectMake(CGRectGetMidX(self.view.bounds), CGRectGetMidY(self.view.bounds), 1.0, 1.0);
+        [[self activeViewController] presentViewController:alert animated:YES completion:nil];
+        return;
+    }
+
+    Log(LOG_I, @"Howl launch: %@ -> Moonlight app id %@", title, match.id);
+    _selectedHost = host;
+    [self appClicked:match view:nil];
+}
+#endif
+
 - (void) appClicked:(TemporaryApp *)app view:(UIView *)view {
     Log(LOG_D, @"Clicked app: %@", app.name);
     
@@ -959,6 +1030,15 @@ static NSMutableSet* hostList;
     [_upButton setTarget:self];
     [_upButton setAction:@selector(showHostSelectionView)];
     [self disableUpButton];
+
+    // Howl game library (same tiles as the web client).
+    UIBarButtonItem* howlLibraryButton = [[UIBarButtonItem alloc] initWithTitle:@"遊戲庫"
+                                                                        style:UIBarButtonItemStylePlain
+                                                                       target:self
+                                                                       action:@selector(showHowlLibrary)];
+    NSMutableArray* rightItems = [NSMutableArray arrayWithArray:self.navigationItem.rightBarButtonItems ?: @[]];
+    [rightItems insertObject:howlLibraryButton atIndex:0];
+    self.navigationItem.rightBarButtonItems = rightItems;
     
     // Set the gesture
     [self.view addGestureRecognizer:self.revealViewController.panGestureRecognizer];
@@ -1185,6 +1265,24 @@ static NSMutableSet* hostList;
 - (void) retrieveSavedHosts {
     DataManager* dataMan = [[DataManager alloc] init];
     NSArray* hosts = [dataMan getHosts];
+
+    // Howl knows its own host, so seed it once instead of sitting on
+    // "搜尋主機中…" when mDNS cannot see the public machine.
+    NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+    if (hosts.count == 0 && ![defaults boolForKey:@"HowlHostSeeded"]) {
+        TemporaryHost* howlHost = [[TemporaryHost alloc] init];
+        howlHost.name = @"Howl（txg1）";
+        howlHost.uuid = [[NSUUID UUID] UUIDString];
+        howlHost.address = @"txg1.chiuhuang.dev";
+        howlHost.externalAddress = @"txg1.chiuhuang.dev";
+        howlHost.httpsPort = 47984;
+        howlHost.state = StateUnknown;
+        howlHost.pairState = PairStateUnknown;
+        hosts = @[ howlHost ];
+        [dataMan updateHost:howlHost];
+        [defaults setBool:YES forKey:@"HowlHostSeeded"];
+        Log(LOG_I, @"Seeded Howl host %@", howlHost.address);
+    }
     @synchronized(hostList) {
         [hostList addObjectsFromArray:hosts];
         

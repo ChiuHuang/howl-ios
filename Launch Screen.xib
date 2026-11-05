@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="15505" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" colorMatched="YES">
-    <device id="retina6_1" orientation="landscape" appearance="light"/>
+    <device id="retina6_1" orientation="landscape" appearance="dark"/>
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="15509"/>
@@ -12,7 +12,19 @@
         <view contentMode="scaleToFill" id="VWy-YH-qYj">
             <rect key="frame" x="0.0" y="0.0" width="896" height="414"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-            <color key="backgroundColor" white="0.33333333329999998" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+            <subviews>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="HOWL" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="18" translatesAutoresizingMaskIntoConstraints="NO" id="How-Lb-001">
+                    <rect key="frame" x="328" y="180" width="240" height="54"/>
+                    <fontDescription key="fontDescription" type="system" weight="heavy" pointSize="44"/>
+                    <color key="textColor" red="1" green="0.82" blue="0.36" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                    <nil key="highlightedColor"/>
+                </label>
+            </subviews>
+            <color key="backgroundColor" red="0.051" green="0.043" blue="0.031" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <constraints>
+                <constraint firstItem="How-Lb-001" firstAttribute="centerX" secondItem="VWy-YH-qYj" secondAttribute="centerX" id="How-Cx-001"/>
+                <constraint firstItem="How-Lb-001" firstAttribute="centerY" secondItem="VWy-YH-qYj" secondAttribute="centerY" id="How-Cy-001"/>
+            </constraints>
             <point key="canvasLocation" x="33" y="187"/>
         </view>
     </objects>

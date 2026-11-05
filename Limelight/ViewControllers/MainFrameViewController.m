@@ -53,6 +53,9 @@
     NSArray* _sortedAppList;
     NSCache* _boxArtCache;
     bool _background;
+#if !TARGET_OS_TV
+    UILabel* _howlMark;
+#endif
 #if TARGET_OS_TV
     UITapGestureRecognizer* _menuRecognizer;
 #endif
@@ -63,10 +66,10 @@ static NSMutableSet* hostList;
     // Needs to be synchronous to ensure the alert is shown before any potential
     // failure callback could be invoked.
     dispatch_sync(dispatch_get_main_queue(), ^{
-        self->_pairAlert = [UIAlertController alertControllerWithTitle:@"Pairing"
-                                                               message:[NSString stringWithFormat:@"Enter the following PIN on the host machine: %@\n\nIf your host PC is running Sunshine, navigate to the Sunshine web UI to enter the PIN.", PIN]
+        self->_pairAlert = [UIAlertController alertControllerWithTitle:@"配對中"
+                                                               message:[NSString stringWithFormat:@"請在主機上輸入以下 PIN：%@\n\n如果主機執行 Sunshine，請到 Sunshine 網頁介面輸入 PIN。", PIN]
                                                         preferredStyle:UIAlertControllerStyleAlert];
-        [self->_pairAlert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleDestructive handler:^(UIAlertAction* action) {
+        [self->_pairAlert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleDestructive handler:^(UIAlertAction* action) {
             self->_pairAlert = nil;
             [self->_discMan startDiscovery];
             [self hideLoadingFrame: ^{
@@ -78,11 +81,11 @@ static NSMutableSet* hostList;
 }
 
 - (void)displayPairingFailureDialog:(NSString *)message {
-    UIAlertController* failedDialog = [UIAlertController alertControllerWithTitle:@"Pairing Failed"
+    UIAlertController* failedDialog = [UIAlertController alertControllerWithTitle:@"配對失敗"
                                                                           message:message
                                                                    preferredStyle:UIAlertControllerStyleAlert];
     [Utils addHelpOptionToDialog:failedDialog];
-    [failedDialog addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+    [failedDialog addAction:[UIAlertAction actionWithTitle:@"確定" style:UIAlertActionStyleDefault handler:nil]];
     
     [_discMan startDiscovery];
     
@@ -124,7 +127,7 @@ static NSMutableSet* hostList;
 
 - (void)enableUpButton {
 #if !TARGET_OS_TV
-    [self->_upButton setTitle:@"Select New Host"];
+    [self->_upButton setTitle:@"選擇其他主機"];
 #endif
 }
 
@@ -133,11 +136,15 @@ static NSMutableSet* hostList;
         self.title = _selectedHost.name;
     }
     else if ([hostList count] == 0) {
-        self.title = @"Searching for PCs on your network...";
+        self.title = @"搜尋主機中…";
     }
     else {
-        self.title = @"Select Host";
+        self.title = @"選擇主機";
     }
+
+#if !TARGET_OS_TV
+    _howlMark.hidden = (_selectedHost != nil);
+#endif
 }
 
 - (void)alreadyPaired {
@@ -561,9 +568,9 @@ static NSMutableSet* hostList;
 
 - (void) addHostClicked {
     Log(LOG_D, @"Clicked add host");
-    UIAlertController* alertController = [UIAlertController alertControllerWithTitle:@"Add Host Manually" message:@"If Moonlight doesn't find your local gaming PC automatically,\nenter the IP address of your PC" preferredStyle:UIAlertControllerStyleAlert];
-    [alertController addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
-    [alertController addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
+    UIAlertController* alertController = [UIAlertController alertControllerWithTitle:@"手動新增主機" message:@"如果 Howl 沒有自動找到你的電腦，\n請輸入它的 IP 位址" preferredStyle:UIAlertControllerStyleAlert];
+    [alertController addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+    [alertController addAction:[UIAlertAction actionWithTitle:@"確定" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
         NSString* hostAddress = [((UITextField*)[[alertController textFields] objectAtIndex:0]).text trim];
         [self showLoadingFrame:^{
             dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
@@ -922,6 +929,26 @@ static NSMutableSet* hostList;
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+
+#if !TARGET_OS_TV
+    // Howl chrome: dark canvas and an amber wordmark under the menu.
+    UIColor* howlInk = [UIColor colorWithRed:0.051 green:0.043 blue:0.031 alpha:1.0];
+    self.view.backgroundColor = howlInk;
+    self.collectionView.backgroundColor = howlInk;
+
+    _howlMark = [[UILabel alloc] init];
+    _howlMark.translatesAutoresizingMaskIntoConstraints = NO;
+    _howlMark.text = @"HOWL";
+    _howlMark.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightHeavy];
+    _howlMark.textColor = [UIColor colorWithRed:1.0 green:0.82 blue:0.36 alpha:0.85];
+    _howlMark.textAlignment = NSTextAlignmentCenter;
+    _howlMark.userInteractionEnabled = NO;
+    [self.view addSubview:_howlMark];
+    [NSLayoutConstraint activateConstraints:@[
+        [_howlMark.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+        [_howlMark.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-8.0],
+    ]];
+#endif
         
 #if !TARGET_OS_TV
     // Set the side bar button action. When it's tapped, it'll show the sidebar.

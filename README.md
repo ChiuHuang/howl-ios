@@ -1,24 +1,64 @@
-# Moonlight iOS/tvOS
+# Howl for iOS
 
-[![CI](https://github.com/moonlight-stream/moonlight-ios/actions/workflows/ci.yml/badge.svg)](https://github.com/moonlight-stream/moonlight-ios/actions/workflows/ci.yml)
+Howl is my own build of the [Moonlight iOS client](https://github.com/moonlight-stream/moonlight-ios),
+rebranded and themed for my [Howl](https://howl.chiuhuang.dev) cloud-gaming setup
+(Wolf host, 2K75, HEVC). It streams from Sunshine / Wolf / GameStream hosts using
+the same protocol as Moonlight.
 
-[Moonlight for iOS/tvOS](https://moonlight-stream.org) is an open source client for [Sunshine](https://github.com/LizardByte/Sunshine) and NVIDIA GameStream. Moonlight for iOS/tvOS allows you to stream your full collection of games and apps from your powerful desktop computer to your iOS device or Apple TV.
+## What is different from upstream
 
-Moonlight also has a [PC client](https://github.com/moonlight-stream/moonlight-qt) and [Android client](https://github.com/moonlight-stream/moonlight-android).
+- **Branding** — app name and icon are Howl, and the app launches on a dark screen
+  with the amber Howl wordmark.
+- **Menu chrome** — the host menu uses Howl's dark/amber look: tinted navigation
+  bar, dark canvas, and a `HOWL` wordmark under the host carousel.
+- **Traditional Chinese menu** — the host menu and pairing/add-host dialogs are in
+  zh-Hant: 搜尋主機中…, 選擇主機, 選擇其他主機, 手動新增主機, 配對中, 配對失敗.
+- **Own bundle id** — `dev.chiuhuang.howl`, version `1.0.0`.
+- **CI** — `.github/workflows/build-ipa.yml` builds on every push with a macOS
+  runner and publishes an **unsigned** `Howl-unsigned.ipa` artifact. Tags
+  (`v*`) attach the IPA to a GitHub release.
 
-Check out [the Moonlight wiki](https://github.com/moonlight-stream/moonlight-docs/wiki) for more detailed project information, setup guide, or troubleshooting steps.
+Everything else — streaming, input, audio, video, pairing, host discovery — is
+upstream Moonlight, unmodified.
 
-[![Moonlight for iOS and tvOS](https://moonlight-stream.org/images/App_Store_Badge_135x40.svg)](https://apps.apple.com/us/app/moonlight-game-streaming/id1000551566)
+## Get the app
 
-## Building
-* Install Xcode from the [App Store page](https://apps.apple.com/us/app/xcode/id497799835)
-* Run `git clone --recursive https://github.com/moonlight-stream/moonlight-ios.git`
-  *  If you've already clone the repo without `--recursive`, run `git submodule update --init --recursive`
-* Open Moonlight.xcodeproj in Xcode
-* To run on a real device, you will need to locally modify the signing options:
-    * Click on "Moonlight" at the top of the left sidebar
-    * Click on the "Signing & Capabilities" tab
-    * Under "Targets", select "Moonlight" (for iOS/iPadOS) or "Moonlight TV" (for tvOS)
-    * In the "Team" dropdown, select your name. If your name doesn't appear, you may need to sign into Xcode with your Apple account.
-    * Change the "Bundle Identifier" to something different. You can add your name or some random letters to make it unique.
-    * Now you can select your Apple device in the top bar as a target and click the Play button to run.
+1. Open the latest [Actions run](https://github.com/ChiuHuang/howl-ios/actions)
+   (or the Releases page for a tag) and download `Howl-unsigned-ipa`.
+2. Unzip `Howl-unsigned.ipa`.
+3. Sideload it, for example:
+   - [AltStore](https://altstore.io) / [SideStore](https://sidestore.io) —
+     re-signs with your Apple ID, works on stock iOS.
+   - [Sideloadly](https://sideloadly.io) — Windows/macOS, same idea.
+   - TrollStore — installs the unsigned IPA as-is on supported iOS versions.
+
+The IPA is not signed, so a signing step (your Apple ID or a certificate) is
+always required before iOS will run it.
+
+## Build locally
+
+```bash
+git clone --recursive https://github.com/ChiuHuang/howl-ios.git
+cd howl-ios
+open Moonlight.xcodeproj
+```
+
+Pick the **Moonlight** scheme (the iOS target keeps its upstream name), set your
+team under Signing & Capabilities, then run on a device. The bundle id is
+`dev.chiuhuang.howl`; change it if it collides with anything in your account.
+
+Unsigned build, like CI does it:
+
+```bash
+xcodebuild -project Moonlight.xcodeproj -scheme Moonlight \
+  -configuration Release -sdk iphoneos \
+  -archivePath build/Howl.xcarchive \
+  CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+  CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" archive
+```
+
+## License
+
+Upstream Moonlight iOS is GPLv3; this fork stays GPLv3. See `LICENSE.txt`.
+The Moonlight name and logo belong to the Moonlight project — this is an
+unofficial personal fork, not affiliated with or endorsed by Moonlight.

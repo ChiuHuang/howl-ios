@@ -8,6 +8,12 @@
 
 #import "AppDelegate.h"
 
+#if !TARGET_OS_TV
+@interface AppDelegate ()
+- (void)applyHowlTheme;
+@end
+#endif
+
 @implementation AppDelegate
 
 @synthesize managedObjectContext = _managedObjectContext;
@@ -28,9 +34,43 @@ static NSString* DB_NAME = @"Limelight_iOS.sqlite";
     if (shortcut != nil) {
         _pcUuidToLoad = (NSString*)[shortcut.userInfo objectForKey:@"UUID"];
     }
+
+    [self applyHowlTheme];
 #endif
     return YES;
 }
+
+#if !TARGET_OS_TV
+- (void)applyHowlTheme {
+    UIColor* ink = [UIColor colorWithRed:0.051 green:0.043 blue:0.031 alpha:1.0];
+    UIColor* amber = [UIColor colorWithRed:1.0 green:0.82 blue:0.36 alpha:1.0];
+
+    self.window.tintColor = amber;
+
+    if (@available(iOS 13.0, *)) {
+        UINavigationBarAppearance* appearance = [[UINavigationBarAppearance alloc] init];
+        [appearance configureWithOpaqueBackground];
+        appearance.backgroundColor = ink;
+        appearance.shadowColor = [UIColor clearColor];
+        appearance.titleTextAttributes = @{ NSForegroundColorAttributeName: amber };
+        appearance.largeTitleTextAttributes = @{ NSForegroundColorAttributeName: amber };
+
+        UINavigationBar* bar = [UINavigationBar appearance];
+        bar.standardAppearance = appearance;
+        bar.scrollEdgeAppearance = appearance;
+        bar.compactAppearance = appearance;
+        bar.tintColor = amber;
+    }
+    else {
+        [UINavigationBar appearance].barTintColor = ink;
+        [UINavigationBar appearance].tintColor = amber;
+        [UINavigationBar appearance].titleTextAttributes = @{ NSForegroundColorAttributeName: amber };
+    }
+
+    [UITableView appearance].backgroundColor = ink;
+    [UITableView appearance].separatorColor = [UIColor colorWithWhite:1.0 alpha:0.12];
+}
+#endif
 
 #if !TARGET_OS_TV
 - (void)application:(UIApplication *)application performActionForShortcutItem:(UIApplicationShortcutItem *)shortcutItem completionHandler:(void (^)(BOOL succeeded))completionHandler {

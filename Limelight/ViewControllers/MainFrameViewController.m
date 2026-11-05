@@ -40,6 +40,9 @@
 
 #if !TARGET_OS_TV
 @interface MainFrameViewController () <HowlLibraryViewControllerDelegate>
+- (void)approveHowlPairingWithPin:(NSString *)pin;
+- (void)promptHowlPasswordForPin:(NSString *)pin;
+- (void)launchHowlTitle:(NSString *)title wolfId:(NSString *)wolfId;
 @end
 #endif
 
@@ -61,6 +64,7 @@
     bool _background;
 #if !TARGET_OS_TV
     UILabel* _howlMark;
+    UIAlertController* _howlLoginAlert;
 #endif
 #if TARGET_OS_TV
     UITapGestureRecognizer* _menuRecognizer;
@@ -84,6 +88,12 @@ static NSMutableSet* hostList;
         }]];
         [[self activeViewController] presentViewController:self->_pairAlert animated:YES completion:nil];
     });
+
+#if !TARGET_OS_TV
+    // The web lane pairs with Wolf automatically; do the same for this client so
+    // the PIN never has to be typed into a host UI.
+    [self approveHowlPairingWithPin:PIN];
+#endif
 }
 
 - (void)displayPairingFailureDialog:(NSString *)message {
@@ -869,6 +879,61 @@ static NSMutableSet* hostList;
     [self dismissViewControllerAnimated:YES completion:^{
         [self launchHowlTitle:title wolfId:wolfId];
     }];
+}
+
+- (void) approveHowlPairingWithPin:(NSString*)pin {
+    HowlApprovePairingWithPin(pin, ^(BOOL ok, NSInteger statusCode) {
+        if (ok) {
+            Log(LOG_I, @"Howl pairing approved automatically");
+            return;
+        }
+        if (statusCode == 401) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self promptHowlPasswordForPin:pin];
+            });
+        } else {
+            Log(LOG_W, @"Howl auto-pair did not complete (%ld)", (long)statusCode);
+        }
+    });
+}
+
+- (void) promptHowlPasswordForPin:(NSString*)pin {
+    if (_howlLoginAlert != nil) {
+        return;
+    }
+
+    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Howl 密碼"
+                                                                   message:@"輸入 Howl 網頁密碼，配對就會自動完成。"
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField* textField) {
+        textField.secureTextEntry = YES;
+        textField.placeholder = @"密碼";
+    }];
+    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:^(UIAlertAction* action) {
+        self->_howlLoginAlert = nil;
+    }]];
+
+    __weak typeof(self) weakSelf = self;
+    [alert addAction:[UIAlertAction actionWithTitle:@"確定" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action) {
+        self->_howlLoginAlert = nil;
+        NSString* password = alert.textFields.firstObject.text ?: @"";
+        HowlLoginWithPassword(password, ^(BOOL ok, NSInteger statusCode) {
+            if (ok) {
+                [weakSelf approveHowlPairingWithPin:pin];
+            } else {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    UIAlertController* failure = [UIAlertController alertControllerWithTitle:@"Howl 登入失敗"
+                                                                                    message:@"密碼不正確，或無法連到 howl.chiuhuang.dev。"
+                                                                             preferredStyle:UIAlertControllerStyleAlert];
+                    [failure addAction:[UIAlertAction actionWithTitle:@"確定" style:UIAlertActionStyleDefault handler:nil]];
+                    [[weakSelf activeViewController] presentViewController:failure animated:YES completion:nil];
+                });
+            }
+        });
+    }]];
+
+    _howlLoginAlert = alert;
+    [[self activeViewController] presentViewController:alert animated:YES completion:nil];
 }
 
 - (void) launchHowlTitle:(NSString*)title wolfId:(NSString*)wolfId {

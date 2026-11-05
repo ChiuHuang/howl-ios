@@ -24,7 +24,7 @@ static UIColor *HowlAmber(void)
     return [UIColor colorWithRed:1.0 green:0.82 blue:0.36 alpha:1.0];
 }
 
-static NSString *HowlBaseURLString(void)
+NSString *HowlBackendBaseURL(void)
 {
     NSString *override = [[NSUserDefaults standardUserDefaults] stringForKey:kHowlBaseURLDefaultsKey];
     override = [override stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -32,6 +32,42 @@ static NSString *HowlBaseURLString(void)
         return [override hasSuffix:@"/"] ? [override substringToIndex:override.length - 1] : override;
     }
     return kHowlDefaultBaseURL;
+}
+
+static void HowlPostJSON(NSString *path, NSDictionary *body, NSTimeInterval timeout,
+                         void (^completion)(BOOL ok, NSInteger statusCode))
+{
+    NSURL *url = [NSURL URLWithString:[HowlBackendBaseURL() stringByAppendingString:path]];
+    if (url == nil) {
+        completion(NO, 0);
+        return;
+    }
+
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url
+                                                           cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
+                                                       timeoutInterval:timeout];
+    request.HTTPMethod = @"POST";
+    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    request.HTTPBody = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
+
+    [[[NSURLSession sharedSession] dataTaskWithRequest:request
+                                    completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        NSInteger statusCode = [response isKindOfClass:[NSHTTPURLResponse class]]
+            ? ((NSHTTPURLResponse *)response).statusCode : 0;
+        BOOL ok = (error == nil && statusCode >= 200 && statusCode < 300);
+        completion(ok, statusCode);
+    }] resume];
+}
+
+void HowlLoginWithPassword(NSString *password, void (^completion)(BOOL, NSInteger))
+{
+    HowlPostJSON(@"/api/auth/login", @{ @"password" : password ?: @"" }, 20.0, completion);
+}
+
+void HowlApprovePairingWithPin(NSString *pin, void (^completion)(BOOL, NSInteger))
+{
+    // The backend waits up to a minute for Wolf to surface the pending request.
+    HowlPostJSON(@"/api/pair/native", @{ @"pin" : pin ?: @"" }, 75.0, completion);
 }
 
 /// Backend art URLs are either absolute, root-relative (/api/art/x.png) or a
@@ -341,7 +377,7 @@ static NSCache *HowlArtCache(void)
         [self setStatus:@"載入遊戲庫中…"];
     }
 
-    NSString *base = HowlBaseURLString();
+    NSString *base = HowlBackendBaseURL();
     NSURL *url = [NSURL URLWithString:[base stringByAppendingString:@"/api/library/win"]];
     if (url == nil) {
         self.loading = NO;

@@ -99,17 +99,17 @@
     if (![self verifyResponseStatus:pairResp]) {
         // GFE does not allow pairing while a server is busy, but Sunshine does. We give it a try and display the busy error if it fails.
         if ([state hasSuffix:@"_SERVER_BUSY"]) {
-            [self finishPairing:bgId forResponse:pairResp withFallbackError:@"You cannot pair while a previous session is still running on the host PC. Quit any running games or reboot the host PC, then try pairing again."];
+            [self finishPairing:bgId forResponse:pairResp withFallbackError:@"主機上仍有進行中的工作階段，無法配對。請結束執行中的遊戲或重新啟動主機後再試。"];
         }
         else {
-            [self finishPairing:bgId forResponse:pairResp withFallbackError:@"Pairing was declined by the target."];
+            [self finishPairing:bgId forResponse:pairResp withFallbackError:@"主機拒絕了配對。"];
         }
         return;
     }
     
     NSString* plainCert = [pairResp getStringTag:@"plaincert"];
     if ([plainCert length] == 0) {
-        [self finishPairing:bgId forResponse:pairResp withFallbackError:@"Another pairing attempt is already in progress."];
+        [self finishPairing:bgId forResponse:pairResp withFallbackError:@"另一個配對嘗試正在進行中。"];
         return;
     }
     
@@ -188,7 +188,7 @@
         serverChallengeRespHash = [cryptoMan SHA1HashData: serverChallengeRespHashInput];
     }
     if (![serverChallengeRespHash isEqual:serverResponse]) {
-        [self finishPairing:bgId forResponse:secretResp withFallbackError:@"Incorrect PIN"];
+        [self finishPairing:bgId forResponse:secretResp withFallbackError:@"PIN 錯誤"];
         return;
     }
     

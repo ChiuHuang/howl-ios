@@ -66,14 +66,14 @@
         xmlFree(statusMsgXml);
     }
     else {
-        self.statusMessage = @"Server Error";
+        self.statusMessage = @"伺服器錯誤";
     }
     
     if (self.statusCode == -1 && [self.statusMessage isEqualToString:@"Invalid"]) {
         // Special case handling an audio capture error which GFE doesn't
         // provide any useful status message for.
         self.statusCode = 418;
-        self.statusMessage = @"Missing audio capture device. Reinstalling GeForce Experience should resolve this error.";
+        self.statusMessage = @"找不到音訊擷取裝置。重新安裝 GeForce Experience 通常可解決此問題。";
     }
 
     node = node->children;

@@ -20,7 +20,7 @@
 
 @dynamic overrideUserInterfaceStyle;
 
-static NSString* bitrateFormat = @"Bitrate: %.1f Mbps";
+static NSString* bitrateFormat = @"位元率：%.1f Mbps";
 static const int bitrateTable[] = {
     500,
     1000,
@@ -233,7 +233,7 @@ BOOL isCustomResolution(CGSize res) {
     
     if (!VTIsHardwareDecodeSupported(kCMVideoCodecType_HEVC) || !(AVPlayer.availableHDRModes & AVPlayerHDRModeHDR10)) {
         [self.hdrSelector removeAllSegments];
-        [self.hdrSelector insertSegmentWithTitle:@"Unsupported on this device" atIndex:0 animated:NO];
+        [self.hdrSelector insertSegmentWithTitle:@"此裝置不支援" atIndex:0 animated:NO];
         [self.hdrSelector setEnabled:NO];
     }
     else {
@@ -263,6 +263,10 @@ BOOL isCustomResolution(CGSize res) {
     [self.bitrateSlider addTarget:self action:@selector(bitrateSliderMoved) forControlEvents:UIControlEventValueChanged];
     [self updateBitrateText];
     [self updateResolutionDisplayViewText];
+
+#if !TARGET_OS_TV
+    [self addHowlAboutFooter];
+#endif
 }
 
 - (void) touchModeChanged {
@@ -345,10 +349,10 @@ BOOL isCustomResolution(CGSize res) {
 }
 
 - (void) promptCustomResolutionDialog {
-    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Enter Custom Resolution" message:nil preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"自訂解析度" message:nil preferredStyle:UIAlertControllerStyleAlert];
 
     [alertController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-        textField.placeholder = @"Video Width";
+        textField.placeholder = @"畫面寬度";
         textField.clearButtonMode = UITextFieldViewModeAlways;
         textField.borderStyle = UITextBorderStyleRoundedRect;
         textField.keyboardType = UIKeyboardTypeNumberPad;
@@ -362,7 +366,7 @@ BOOL isCustomResolution(CGSize res) {
     }];
 
     [alertController addTextFieldWithConfigurationHandler:^(UITextField *textField) {
-        textField.placeholder = @"Video Height";
+        textField.placeholder = @"畫面高度";
         textField.clearButtonMode = UITextFieldViewModeAlways;
         textField.borderStyle = UITextBorderStyleRoundedRect;
         textField.keyboardType = UIKeyboardTypeNumberPad;
@@ -375,7 +379,7 @@ BOOL isCustomResolution(CGSize res) {
         }
     }];
 
-    [alertController addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+    [alertController addAction:[UIAlertAction actionWithTitle:@"確定" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         NSArray * textfields = alertController.textFields;
         UITextField *widthField = textfields[0];
         UITextField *heightField = textfields[1];
@@ -410,12 +414,12 @@ BOOL isCustomResolution(CGSize res) {
         [self updateResolutionDisplayViewText];
         self->_lastSelectedResolutionIndex = [self.resolutionSelector selectedSegmentIndex];
         
-        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"Custom Resolution Selected" message: @"Custom resolutions are not officially supported by GeForce Experience, so it will not set your host display resolution. You will need to set it manually while in game.\n\nResolutions that are not supported by your client or host PC may cause streaming errors." preferredStyle:UIAlertControllerStyleAlert];
-        [alertController addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:@"已套用自訂解析度" message: @"GeForce Experience 並未正式支援自訂解析度，因此不會變更你電腦的顯示解析度，需要在遊戲中自行設定。\n\n若用戶端或電腦不支援所選解析度，可能會導致串流錯誤。" preferredStyle:UIAlertControllerStyleAlert];
+        [alertController addAction:[UIAlertAction actionWithTitle:@"確定" style:UIAlertActionStyleDefault handler:nil]];
         [self presentViewController:alertController animated:YES completion:nil];
     }]];
 
-    [alertController addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
+    [alertController addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
         // Restore the previous selection
         [self.resolutionSelector setSelectedSegmentIndex:self->_lastSelectedResolutionIndex];
     }]];
@@ -442,7 +446,7 @@ BOOL isCustomResolution(CGSize res) {
         [subview removeFromSuperview];
     }
     UILabel *label1 = [[UILabel alloc] init];
-    label1.text = @"Set PC/Game resolution: ";
+    label1.text = @"設定電腦／遊戲解析度：";
     label1.font = [UIFont systemFontOfSize:fontSize];
     [label1 sizeToFit];
     label1.frame = CGRectMake(padding, (viewFrameHeight - label1.frame.size.height) / 2, label1.frame.size.width, label1.frame.size.height);
@@ -567,5 +571,47 @@ BOOL isCustomResolution(CGSize res) {
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
 }
 
+
+#if !TARGET_OS_TV
+- (void)addHowlAboutFooter {
+    CGFloat lowestY = 0;
+    for (UIView* view in self.scrollView.subviews) {
+        if ([view isKindOfClass:[UILabel class]] ||
+            [view isKindOfClass:[UISegmentedControl class]] ||
+            [view isKindOfClass:[UISlider class]]) {
+            lowestY = MAX(lowestY, CGRectGetMaxY(view.frame));
+        }
+    }
+
+    NSString* version = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
+    NSString* build = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
+    UILabel* footer = [[UILabel alloc] initWithFrame:CGRectMake(20, lowestY + 28, self.scrollView.bounds.size.width - 40, 0)];
+    footer.numberOfLines = 0;
+    footer.textAlignment = NSTextAlignmentCenter;
+    footer.font = [UIFont systemFontOfSize:[UIFont smallSystemFontSize]];
+    footer.textColor = [UIColor colorWithWhite:1.0 alpha:0.45];
+    footer.preferredMaxLayoutWidth = footer.frame.size.width;
+    footer.text = [NSString stringWithFormat:@"Howl %@ (%@)\n基於 Moonlight，GPLv3\n點一下查看授權與原始碼", version, build];
+    footer.userInteractionEnabled = YES;
+    [footer addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(howlAboutTapped)]];
+    [footer sizeToFit];
+
+    CGRect footerFrame = footer.frame;
+    footerFrame.origin.x = 20;
+    footer.frame = footerFrame;
+    [self.scrollView addSubview:footer];
+}
+
+- (void)howlAboutTapped {
+    UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"關於 Howl"
+                                                                  message:@"Howl 是以 Moonlight 為基礎的 iOS 串流用戶端，採 GPLv3 授權。\n\n原始碼與問題回報：github.com/ChiuHuang/howl-ios"
+                                                           preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"開啟原始碼" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action) {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/ChiuHuang/howl-ios"] options:@{} completionHandler:nil];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"關閉" style:UIAlertActionStyleCancel handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+#endif
 
 @end

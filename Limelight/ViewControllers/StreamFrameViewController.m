@@ -141,9 +141,9 @@
     [_tipLabel setUserInteractionEnabled:NO];
     
 #if TARGET_OS_TV
-    [_tipLabel setText:@"Tip: Tap the Play/Pause button on the Apple TV Remote to disconnect from your PC"];
+    [_tipLabel setText:@"提示：按下 Apple TV Remote 的播放／暫停鍵即可中斷連線"];
 #else
-    [_tipLabel setText:@"Tip: Swipe from the left edge to disconnect from your PC"];
+    [_tipLabel setText:@"提示：從畫面左緣滑動即可中斷與電腦的連線"];
 #endif
     
     [_tipLabel sizeToFit];
@@ -403,8 +403,8 @@
         NSString* message;
         
         if (portTestResults != ML_TEST_RESULT_INCONCLUSIVE && portTestResults != 0) {
-            title = @"Connection Error";
-            message = @"Your device's network connection is blocking Moonlight. Streaming may not work while connected to this network.";
+            title = @"連線錯誤";
+            message = @"你的裝置網路連線阻擋了 Howl，連線到此網路時可能無法串流。";
         }
         else {
             switch (errorCode) {
@@ -413,29 +413,29 @@
                     return;
                     
                 case ML_ERROR_NO_VIDEO_TRAFFIC:
-                    title = @"Connection Error";
-                    message = @"No video received from host.";
+                    title = @"連線錯誤";
+                    message = @"沒有收到主機的影像。";
                     if (portFlags != 0) {
                         char failingPorts[256];
                         LiStringifyPortFlags(portFlags, "\n", failingPorts, sizeof(failingPorts));
-                        message = [message stringByAppendingString:[NSString stringWithFormat:@"\n\nCheck your firewall and port forwarding rules for port(s):\n%s", failingPorts]];
+                        message = [message stringByAppendingString:[NSString stringWithFormat:@"\n\n請檢查防火牆與連接埠轉送設定，開通以下連接埠：\n%s", failingPorts]];
                     }
                     break;
                     
                 case ML_ERROR_NO_VIDEO_FRAME:
-                    title = @"Connection Error";
-                    message = @"Your network connection isn't performing well. Reduce your video bitrate setting or try a faster connection.";
+                    title = @"連線錯誤";
+                    message = @"網路品質不佳。請降低位元率，或改用更快的連線。";
                     break;
                     
                 case ML_ERROR_UNEXPECTED_EARLY_TERMINATION:
                 case ML_ERROR_PROTECTED_CONTENT:
-                    title = @"Connection Error";
-                    message = @"Something went wrong on your host PC when starting the stream.\n\nMake sure you don't have any DRM-protected content open on your host PC. You can also try restarting your host PC.\n\nIf the issue persists, try reinstalling your GPU drivers and GeForce Experience.";
+                    title = @"連線錯誤";
+                    message = @"主機在開始串流時發生問題。\n\n請確認電腦上沒有開啟受 DRM 保護的內容，也可以試著重新啟動電腦。\n\n若問題持續，請重新安裝顯示卡驅動程式與 GeForce Experience。";
                     break;
                     
                 case ML_ERROR_FRAME_CONVERSION:
-                    title = @"Connection Error";
-                    message = @"The host PC reported a fatal video encoding error.\n\nTry disabling HDR mode, changing the streaming resolution, or changing your host PC's display resolution.";
+                    title = @"連線錯誤";
+                    message = @"主機回報無法回復的影像編碼錯誤。\n\n請嘗試關閉 HDR、變更串流解析度，或調整電腦的顯示解析度。";
                     break;
                     
                 default:
@@ -450,8 +450,8 @@
                         errorString = [NSString stringWithFormat:@"%d", errorCode];
                     }
                     
-                    title = @"Connection Terminated";
-                    message = [NSString stringWithFormat: @"The connection was terminated\n\nError code: %@", errorString];
+                    title = @"連線已終止";
+                    message = [NSString stringWithFormat: @"連線已終止\n\n錯誤代碼：%@", errorString];
                     break;
                 }
             }
@@ -461,7 +461,7 @@
                                                                               message:message
                                                                        preferredStyle:UIAlertControllerStyleAlert];
         [Utils addHelpOptionToDialog:conTermAlert];
-        [conTermAlert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
+        [conTermAlert addAction:[UIAlertAction actionWithTitle:@"確定" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
             [self returnToMainFrame];
         }]];
         [self presentViewController:conTermAlert animated:YES completion:nil];
@@ -497,7 +497,7 @@
         if (portTestFlags != 0) {
             char failingPorts[256];
             LiStringifyPortFlags(portTestFlags, "\n", failingPorts, sizeof(failingPorts));
-            message = [message stringByAppendingString:[NSString stringWithFormat:@"\n\nCheck your firewall and port forwarding rules for port(s):\n%s", failingPorts]];
+            message = [message stringByAppendingString:[NSString stringWithFormat:@"\n\n請檢查防火牆與連接埠轉送設定，開通以下連接埠：\n%s", failingPorts]];
         }
         if (portTestResults != ML_TEST_RESULT_INCONCLUSIVE && portTestResults != 0) {
             message = [message stringByAppendingString:@"\n\nYour device's network connection is blocking Moonlight. Streaming may not work while connected to this network."];
@@ -507,7 +507,7 @@
                                                                        message:message
                                                                 preferredStyle:UIAlertControllerStyleAlert];
         [Utils addHelpOptionToDialog:alert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
+        [alert addAction:[UIAlertAction actionWithTitle:@"確定" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
             [self returnToMainFrame];
         }]];
         [self presentViewController:alert animated:YES completion:nil];
@@ -523,11 +523,11 @@
         // Allow the display to go to sleep now
         [UIApplication sharedApplication].idleTimerDisabled = NO;
         
-        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Connection Error"
+        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"連線錯誤"
                                                                        message:message
                                                                 preferredStyle:UIAlertControllerStyleAlert];
         [Utils addHelpOptionToDialog:alert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
+        [alert addAction:[UIAlertAction actionWithTitle:@"確定" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
             [self returnToMainFrame];
         }]];
         [self presentViewController:alert animated:YES completion:nil];
@@ -574,10 +574,10 @@
                 
             case CONN_STATUS_POOR:
                 if (self->_streamConfig.bitRate > 5000) {
-                    [self updateOverlayText:@"Slow connection to PC\nReduce your bitrate"];
+                    [self updateOverlayText:@"電腦連線緩慢\n請降低位元率"];
                 }
                 else {
-                    [self updateOverlayText:@"Poor connection to PC"];
+                    [self updateOverlayText:@"與電腦的連線品質不佳"];
                 }
                 break;
         }
